@@ -24,8 +24,6 @@ from livekit.plugins import (
     openai,
     cartesia,
     silero,
-    turn_detector,
-    noise_cancellation,
 )
 
 
@@ -183,7 +181,6 @@ async def entrypoint(ctx: JobContext):
 
     # the following uses GPT-4o, Deepgram and Cartesia
     session = AgentSession(
-        turn_detection=turn_detector.EOUModel(),
         vad=silero.VAD.load(),
         stt=deepgram.STT(language="fr", model="nova-2"),
         # you can also use OpenAI's TTS with openai.TTS()
@@ -201,10 +198,7 @@ async def entrypoint(ctx: JobContext):
         session.start(
             agent=agent,
             room=ctx.room,
-            room_input_options=RoomInputOptions(
-                # enable Krisp background voice and noise removal
-                noise_cancellation=noise_cancellation.BVC(),
-            ),
+            room_input_options=RoomInputOptions(),
         )
     )
 
