@@ -1,0 +1,23 @@
+    {
+      "$schema": "https://railway.app/railway.schema.json",
+      "services": [
+        {
+          "name": "test-drive",  # <-- REMPLACEZ CECI
+          "build": {
+            "dockerfilePath": "./Dockerfile.api"
+          },
+          "deploy": {
+            "startCommand": "uvicorn api.main:app --host 0.0.0.0 --port $PORT"
+          }
+        },
+        {
+          "name": "agent-demo", # <-- REMPLACEZ CECI
+          "build": {
+            "dockerfilePath": "./Dockerfile.agent"
+          },
+          "deploy": {
+            "startCommand": "python Cartesia/Demo/outbound/agent.py"
+          }
+        }
+      ]
+    }
