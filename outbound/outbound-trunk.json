@@ -1,0 +1,9 @@
+{
+    "trunk": {
+      "name": "Pam test-drive Outbound Trunk",
+      "address": "pamlivekit.pstn.twilio.com",
+      "numbers": ["+17755773149"],
+      "auth_username": "Yd",
+      "auth_password": "Excelsior1419!"
+    }
+  }
