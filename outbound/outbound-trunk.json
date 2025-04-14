@@ -1,9 +1,0 @@
-{
-    "trunk": {
-      "name": " test-drive Outbound Trunk",
-      "address": "livekit.pstn.twilio.com",
-      "numbers": ["+175773149"],
-      "auth_username": "Username",
-      "auth_password": "Pwd"
-    }
-  }
