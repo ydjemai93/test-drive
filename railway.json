@@ -2,7 +2,7 @@
       "$schema": "https://railway.app/railway.schema.json",
       "services": [
         {
-          "name": "test-drive",  # <-- REMPLACEZ CECI
+          "name": "test-drive",  
           "build": {
             "dockerfilePath": "./Dockerfile.api"
           },
@@ -11,7 +11,7 @@
           }
         },
         {
-          "name": "fabulous-rebirth", # <-- REMPLACEZ CECI
+          "name": "fabulous-rebirth", 
           "build": {
             "dockerfilePath": "./Dockerfile.agent"
           },
