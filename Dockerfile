@@ -18,7 +18,7 @@
     COPY api/requirements.txt ./
 
     # Installer les dépendances Python
-    RUN pip install --no-cache-dir -r api/requirements.txt
+    RUN pip install --no-cache-dir -r requirements.txt
 
     # Copier le code de l'API
     COPY api/ ./api/
