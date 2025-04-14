@@ -4,11 +4,7 @@ import subprocess
 import json
 import logging
 import os
-from dotenv import load_dotenv
 
-# Load environment variables from .env files
-load_dotenv(dotenv_path="../outbound/.env.local") # Adjust path as needed
-load_dotenv(dotenv_path="../outbound/.env") # Load base .env if local exists or not
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
