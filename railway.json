@@ -1,0 +1,23 @@
+    {
+      "$schema": "https://railway.app/railway.schema.json",
+      "services": [
+        {
+          "name": "test-drive",
+          "build": {
+            "dockerfilePath": "./Dockerfile.api"
+          },
+          "deploy": {
+            "startCommand": "uvicorn api.main:app --host 0.0.0.0 --port $PORT"
+          }
+        },
+        {
+          "name": "pam-demo-agent",
+          "build": {
+            "dockerfilePath": "./Dockerfile.agent"
+          },
+          "deploy": {
+            "startCommand": "python agent.py"
+          }
+        }
+      ]
+    }
