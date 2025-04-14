@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from dotenv import load_dotenv
 import json
 import os
 import sys
