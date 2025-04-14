@@ -11,7 +11,7 @@
           }
         },
         {
-          "name": "agent-demo", # <-- REMPLACEZ CECI
+          "name": "fabulous-rebirth", # <-- REMPLACEZ CECI
           "build": {
             "dockerfilePath": "./Dockerfile.agent"
           },
