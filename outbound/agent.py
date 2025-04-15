@@ -8,13 +8,13 @@ import sys
 import locale
 from typing import Any
 
-# Forcer l\'encodage UTF-8 pour Windows (si nécessaire, mais peut être omis sur les systèmes Linux/macOS)
+# Forcer l'encodage UTF-8 pour Windows (si nécessaire, mais peut être omis sur les systèmes Linux/macOS)
 if sys.platform == 'win32':
     try:
-        locale.setlocale(locale.LC_ALL, \'fr_FR.UTF-8\')
+        locale.setlocale(locale.LC_ALL, 'fr_FR.UTF-8')
     except locale.Error:
         try:
-            locale.setlocale(locale.LC_ALL, \'French_France.1252\')
+            locale.setlocale(locale.LC_ALL, 'French_France.1252')
         except locale.Error:
             logger.warning("Could not set French locale for Windows.") # Utiliser logger si défini
             pass
@@ -24,7 +24,7 @@ logger = logging.getLogger("outbound-caller")
 logger.setLevel(logging.INFO)
 handler = logging.StreamHandler(sys.stderr)
 handler.setLevel(logging.INFO)
-formatter = logging.Formatter(\'%(asctime)s - %(name)s - %(levelname)s - %(message)s\')
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 handler.setFormatter(formatter)
 # Éviter d'ajouter plusieurs fois le handler si le module est rechargé
 if not logger.hasHandlers():
