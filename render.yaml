@@ -9,7 +9,7 @@ services:
     dockerfilePath: ./Dockerfile.api # Chemin vers le Dockerfile API
     startCommand: uvicorn api.main:app --host 0.0.0.0 --port $PORT
     envVars:
-      - fromGroup: env-demo # Nom de votre groupe d'environnement partagé
+      - fromGroup: env.local # Nom de votre groupe d'environnement partagé
 
   # Service Agent (Background Worker)
   - type: worker # Type Worker pour l'agent persistant
@@ -21,7 +21,7 @@ services:
     # S'exécute dans le WORKDIR défini dans Dockerfile.agent (/app/outbound)
     startCommand: python agent.py
     envVars:
-      - fromGroup: env-demo # Nom de votre groupe d'environnement partagé
+      - fromGroup: env.local # Nom de votre groupe d'environnement partagé
 
 # Optionnel: Définir le groupe d'environnement ici si vous ne l'avez pas fait dans l'UI
 # envVarGroups:
