@@ -2,25 +2,24 @@
   "$schema": "https://railway.app/railway.schema.json",
   "services": [
     {
-      "name": "test-drive",  # <-- REMPLACEZ PAR LE NOM EXACT DE VOTRE SERVICE API
+      "name": "test-drive",  
       "build": {
-        "builder": "DOCKERFILE",        # Force le builder Docker
-        "dockerfilePath": "./Dockerfile.api" # Chemin vers le Dockerfile API
+        "builder": "DOCKERFILE",        
+        "dockerfilePath": "./Dockerfile.api" 
       },
       "deploy": {
-        # Commande de démarrage pour l'API sur Railway
+       
         "startCommand": "uvicorn api.main:app --host 0.0.0.0 --port $PORT"
       }
     },
     {
-      "name": "keen-friendship", # <-- REMPLACEZ PAR LE NOM EXACT DE VOTRE SERVICE AGENT
+      "name": "keen-friendship", 
       "build": {
-        "builder": "DOCKERFILE",        # Force le builder Docker
-        "dockerfilePath": "./Dockerfile.agent" # Chemin vers le Dockerfile Agent
+        "builder": "DOCKERFILE",        
+        "dockerfilePath": "./Dockerfile.agent" 
       },
       "deploy": {
-        # Commande de démarrage pour l'Agent sur Railway
-        # S'exécute dans le WORKDIR défini dans Dockerfile.agent (/app/outbound)
+        
         "startCommand": "python agent.py"
       }
     }
