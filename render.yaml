@@ -1,0 +1,37 @@
+# render.yaml
+services:
+  # Service API (Web Service)
+  - type: web
+    name: pam-demo-api # Assurez-vous que ce nom correspond à celui dans Render (ou changez-le ici et Render le mettra à jour)
+    env: docker
+    repo: https://github.com/VOTRE_USER/VOTRE_REPO # Mettez l'URL de votre repo
+    branch: main # Ou la branche que vous déployez
+    dockerfilePath: ./Dockerfile.api # Chemin explicite vers le Dockerfile de l'API
+    # Pas de buildCommand nécessaire ici car env: docker
+    startCommand: uvicorn api.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - fromGroup: pam-demo-shared-env # Nom de votre Environment Group
+
+  # Service Agent (Background Worker)
+  - type: worker # Important: type: worker
+    name: pam-demo-agent # Assurez-vous que ce nom correspond
+    env: docker
+    repo: https://github.com/VOTRE_USER/VOTRE_REPO # Mettez l'URL de votre repo
+    branch: main # Ou la branche que vous déployez
+    dockerfilePath: ./Dockerfile.agent # Chemin explicite vers le Dockerfile de l'agent
+    # Pas de buildCommand nécessaire ici car env: docker
+    startCommand: python agent.py
+    envVars:
+      - fromGroup: pam-demo-shared-env # Nom de votre Environment Group
+
+# Optionnel: Définir le groupe d'environnement directement ici si vous préférez
+# envVarGroups:
+#   - name: pam-demo-shared-env
+#     envVars:
+#       - key: LIVEKIT_URL
+#         value: VOTRE_URL
+#       - key: LIVEKIT_API_KEY
+#         value: VOTRE_CLE_API
+#       - key: LIVEKIT_API_SECRET
+#         value: VOTRE_SECRET
+#       # ... Ajoutez TOUTES les autres variables ici ...
