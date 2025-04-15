@@ -18,7 +18,7 @@
             "dockerfilePath": "./Dockerfile.agent"
           },
           "deploy": {
-            "startCommand": "python Cartesia/Demo/outbound/agent.py" # Assurez-vous que ce chemin est correct depuis la racine
+            "startCommand": "python outbound/agent.py" 
           }
         }
       ]
