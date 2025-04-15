@@ -8,7 +8,18 @@ import sys
 import locale
 from typing import Any
 
-# Forcer l'encodage UTF-8 pour Windows (si nécessaire, mais peut être omis sur les systèmes Linux/macOS)
+# Setup logging first
+logger = logging.getLogger("outbound-caller")
+logger.setLevel(logging.INFO)
+handler = logging.StreamHandler(sys.stderr)
+handler.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+# Avoid adding multiple handlers if the module is reloaded
+if not logger.hasHandlers():
+    logger.addHandler(handler)
+
+# Force UTF-8 encoding for Windows (optional, depending on environment)
 if sys.platform == 'win32':
     try:
         locale.setlocale(locale.LC_ALL, 'fr_FR.UTF-8')
@@ -16,21 +27,11 @@ if sys.platform == 'win32':
         try:
             locale.setlocale(locale.LC_ALL, 'French_France.1252')
         except locale.Error:
-            logger.warning("Could not set French locale for Windows.") # Utiliser logger si défini
+            logger.warning("Could not set French locale for Windows.")
             pass
 
-# Configuration du logger (à faire avant les imports qui pourraient logger)
-logger = logging.getLogger("outbound-caller")
-logger.setLevel(logging.INFO)
-handler = logging.StreamHandler(sys.stderr)
-handler.setLevel(logging.INFO)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-handler.setFormatter(formatter)
-# Éviter d'ajouter plusieurs fois le handler si le module est rechargé
-if not logger.hasHandlers():
-    logger.addHandler(handler)
 
-# Importer les modules LiveKit après la configuration du logger
+# Import LiveKit modules after logger setup
 from livekit import rtc, api
 from livekit.agents import (
     AgentSession,
@@ -50,25 +51,25 @@ from livekit.plugins import (
     silero,
 )
 
-# --- Définition de l'Agent ---
+# --- Agent Definition ---
 class OutboundCaller(Agent):
     def __init__(
         self,
         *,
-        name: str, # Keep name parameter even if not used in the new prompt, in case entrypoint/metadata still provides it
+        name: str, # Keep name parameter even if not used in the new prompt
         dial_info: dict[str, Any],
     ):
-        # Prompt Système pour l'agent "Pam"
+        # System Prompt for "Pam" agent
         super().__init__(
             instructions=(
-                "Vous êtes Pam, un agent d\'assistance téléphonique IA développé par PAM AI, une solution SaaS permettant la création d\'agent téléphonique IA. "
-                "pour la création d\'agents conversationnels intelligents. Lors de cette démonstration, présentez-vous de manière "
-                "professionnelle et montrez vos capacités en tant qu\'agent IA polyvalent.\\n\\n"
-                "IMPORTANT : Évitez complètement d\'utiliser des symboles de formatage comme les astérisques (**), "
+                "Vous êtes Pam, un agent d'assistance téléphonique IA développé par PAM AI, une solution SaaS permettant la création d'agent téléphonique IA. "
+                "pour la création d'agents conversationnels intelligents. Lors de cette démonstration, présentez-vous de manière "
+                "professionnelle et montrez vos capacités en tant qu'agent IA polyvalent.\\n\\n"
+                "IMPORTANT : Évitez complètement d'utiliser des symboles de formatage comme les astérisques (**), "
                 "le soulignement (_), le dièse (#), les puces ou tout autre formatage de type markdown. "
                 "Formulez vos réponses uniquement en texte brut pour une lecture fluide par le système vocal. \\n\\n"
                 "Vos capacités incluent la gestion de tâches administratives et de facturation pour un service client, "
-                "l\'optimisation des opérations dans un centre d\'appels, et l\'assistance aux équipes commerciales et de recouvrement. "
+                "l'optimisation des opérations dans un centre d'appels, et l'assistance aux équipes commerciales et de recouvrement. "
                 "Vous pouvez traiter les demandes clients, répondre aux questions fréquentes, effectuer des actions administratives "
                 "simples, et aider à la résolution de problèmes.\\n\\n"
                 "Pendant la conversation, soyez concis et naturel dans vos réponses, évitez les phrases trop longues ou complexes. "
@@ -79,53 +80,53 @@ class OutboundCaller(Agent):
                 "Répondez toujours en français, avec un langage clair et accessible à tous."
             )
         )
-        # Garder la référence au participant pour les transferts etc.
+        # Store participant reference for transfers etc.
         self.participant: rtc.RemoteParticipant | None = None
         self.dial_info = dial_info
 
-        logger.info(f"OutboundCaller (Pam Demo Agent) initialisé pour {name}")
-        logger.info(f"dial_info fourni: {dial_info}")
+        logger.info(f"OutboundCaller (Pam Demo Agent) initialized for {name}")
+        logger.info(f"dial_info provided: {dial_info}")
 
     def set_participant(self, participant: rtc.RemoteParticipant):
-        """Enregistre le participant distant une fois connecté."""
+        """Stores the remote participant once connected."""
         self.participant = participant
-        logger.info(f"Participant {participant.identity} enregistré pour l'agent.")
+        logger.info(f"Participant {participant.identity} registered for the agent.")
 
     async def hangup(self):
-        """Fonction utilitaire pour raccrocher en supprimant la room."""
-        logger.warning("Raccrochage demandé (suppression de la room).")
+        """Utility function to hang up by deleting the room."""
+        logger.warning("Hangup requested (deleting room).")
         try:
             job_ctx = get_job_context()
             await job_ctx.api.room.delete_room(
                 api.DeleteRoomRequest(room=job_ctx.room.name)
             )
-            logger.info(f"Room {job_ctx.room.name} supprimée.")
+            logger.info(f"Room {job_ctx.room.name} deleted.")
         except Exception as e:
-            logger.error(f"Erreur lors de la suppression de la room: {e}")
+            logger.error(f"Error deleting room: {e}")
 
-    # --- Outils Fonctionnels pour l'Agent ---
+    # --- Agent Function Tools ---
     @function_tool()
     async def transfer_call(self, ctx: RunContext):
-        """Transfère l'appel à un agent humain, appelé après confirmation de l'utilisateur."""
-        transfer_to = self.dial_info.get("transfer_to") # Utiliser .get pour éviter KeyError
+        """Transfers the call to a human agent, called after user confirmation."""
+        transfer_to = self.dial_info.get("transfer_to") # Use .get to avoid KeyError
         if not transfer_to:
-            logger.warning("Numéro de transfert non trouvé dans dial_info.")
+            logger.warning("Transfer number not found in dial_info.")
             return "Je suis désolé, je ne peux pas transférer l'appel pour le moment."
 
         if not self.participant:
-            logger.error("Tentative de transfert sans participant enregistré.")
+            logger.error("Attempting transfer without a registered participant.")
             return "Erreur technique lors de la tentative de transfert."
 
-        logger.info(f"Tentative de transfert de l'appel du participant {self.participant.identity} vers {transfer_to}")
+        logger.info(f"Attempting to transfer participant {self.participant.identity} to {transfer_to}")
 
-        # Laisser l'agent informer l'utilisateur avant le transfert
+        # Let the agent inform the user before transferring
         try:
             await ctx.session.generate_reply(
                 instructions="Informez l'utilisateur que vous allez le transférer maintenant."
             )
         except Exception as e:
-             logger.error(f"Erreur lors de la génération de la réponse avant transfert: {e}")
-             # Continuer quand même avec le transfert si possible
+             logger.error(f"Error generating pre-transfer reply: {e}")
+             # Continue with transfer if possible
 
         job_ctx = get_job_context()
         try:
@@ -133,207 +134,214 @@ class OutboundCaller(Agent):
                 api.TransferSIPParticipantRequest(
                     room_name=job_ctx.room.name,
                     participant_identity=self.participant.identity,
-                    transfer_to=f"tel:{transfer_to}", # Assumer que transfer_to est un numéro valide
+                    transfer_to=f"tel:{transfer_to}", # Assume transfer_to is a valid number
                 )
             )
-            logger.info(f"Appel transféré avec succès vers {transfer_to}. L'agent devrait se déconnecter.")
-            # Normalement, après un transfert réussi, l'agent n'a plus de rôle.
-            # On pourrait vouloir arrêter la session agent ici, mais la suppression de room gère ça.
-            # await self.hangup() # Attention, peut couper le transfert si appelé trop tôt.
+            logger.info(f"Call successfully transferred to {transfer_to}. Agent should disconnect.")
         except Exception as e:
-            logger.error(f"Erreur lors du transfert de l'appel SIP: {e}")
+            logger.error(f"Error during SIP transfer: {e}")
             try:
                 await ctx.session.generate_reply(
                     instructions="Informez l'utilisateur qu'une erreur est survenue lors du transfert."
                 )
             except Exception as inner_e:
-                logger.error(f"Erreur lors de la génération du message d'erreur de transfert: {inner_e}")
-            await self.hangup() # Raccrocher en cas d'échec du transfert
+                logger.error(f"Error generating transfer error message: {inner_e}")
+            await self.hangup() # Hang up on transfer failure
 
     @function_tool()
     async def end_call(self, ctx: RunContext):
-        """Appelé lorsque l'utilisateur souhaite mettre fin à l'appel."""
+        """Called when the user wants to end the call."""
         if not self.participant:
-             logger.warning("end_call demandé mais pas de participant enregistré.")
+             logger.warning("end_call requested but no participant registered.")
         else:
-             logger.info(f"Fin d'appel demandée pour {self.participant.identity}")
+             logger.info(f"End call requested for {self.participant.identity}")
 
-        # Laisser l'agent finir de parler avant de raccrocher
+        # Let the agent finish speaking before hanging up
         try:
             current_speech = ctx.session.current_speech
             if current_speech:
-                logger.info("Attente de la fin de la parole de l'agent avant de raccrocher.")
+                logger.info("Waiting for agent speech to finish before hangup.")
                 await current_speech.done()
         except Exception as e:
-             logger.error(f"Erreur lors de l'attente de la fin de la parole: {e}")
+             logger.error(f"Error waiting for speech completion: {e}")
 
         await self.hangup()
 
-    # D'autres outils fonctionnels pourraient être ajoutés ici si Pam doit effectuer des actions
+    # Other function tools can be added here if Pam needs to perform actions
     # @function_tool()
     # async def lookup_invoice(self, ctx: RunContext, invoice_number: str): ...
 
-# --- Point d'Entrée de l'Agent ---
+# --- Agent Entrypoint ---
 async def entrypoint(ctx: JobContext):
-    logger.info(f"Entrée dans entrypoint pour le job {ctx.job.id} dans la room {ctx.room.name}")
+    logger.info(f"Entering entrypoint for job {ctx.job.id} in room {ctx.room.name}")
 
-    # Connexion à la room LiveKit
+    # Connect to LiveKit room
     try:
         await ctx.connect()
-        logger.info(f"Connexion établie à la room {ctx.room.name}")
+        logger.info(f"Connection established to room {ctx.room.name}")
     except Exception as e:
-        logger.critical(f"Erreur critique : Impossible de se connecter à la room {ctx.room.name}: {e}")
-        return # Arrêter si la connexion échoue
+        logger.critical(f"Critical error: Could not connect to room {ctx.room.name}: {e}")
+        return # Stop if connection fails
 
-    # --- Extraction des Métadonnées ---
-    logger.info(f"Métadonnées brutes du job: {ctx.job.metadata}")
+    # --- Metadata Extraction ---
+    logger.info(f"Raw job metadata: {ctx.job.metadata}")
 
-    first_name = "Client estimé" # Valeur par défaut
+    first_name = "Client estimé" # Default value
     last_name = ""
     phone_number = None
-    dial_info = {} # Initialiser dial_info
+    dial_info = {} # Initialize dial_info
 
     try:
-        # Utiliser les métadonnées du job en priorité, sinon fallback sur la variable d'environnement
+        # Use job metadata first, fallback to environment variable
         metadata_str = ctx.job.metadata or os.getenv("LK_JOB_METADATA", "{}")
         if metadata_str and metadata_str.strip() and metadata_str != "{}":
             dial_info = json.loads(metadata_str)
-            logger.info(f"dial_info décodé des métadonnées: {dial_info}")
+            logger.info(f"dial_info decoded from metadata: {dial_info}")
             first_name = dial_info.get("firstName", first_name)
             last_name = dial_info.get("lastName", last_name)
             phone_number = dial_info.get("phoneNumber")
-            # S'assurer que 'transfer_to' est bien dans dial_info s'il existe
+            # Ensure 'transfer_to' is in dial_info if it exists
             if "transfer_to" in dial_info:
-                 logger.info(f"Numéro de transfert trouvé dans les métadonnées: {dial_info['transfer_to']}")
+                 logger.info(f"Transfer number found in metadata: {dial_info['transfer_to']}")
         else:
-             logger.warning("Aucune métadonnée trouvée dans le job ou LK_JOB_METADATA.")
+             logger.warning("No metadata found in job or LK_JOB_METADATA env var.")
+             dial_info = {} # Ensure dial_info is dict if no metadata
 
     except json.JSONDecodeError as e:
-        logger.error(f"Erreur lors du décodage des métadonnées JSON: {e}")
-        # Utiliser une variable temporaire pour éviter l'erreur de syntaxe f-string
+        logger.error(f"Error decoding metadata JSON: {e}")
+        # Use temporary variable to avoid f-string syntax error
         raw_metadata_content = ctx.job.metadata or os.getenv("LK_JOB_METADATA", "{}")
-        logger.error(f"Contenu brut des métadonnées: {raw_metadata_content}")
-        dial_info = {} # Assurer que dial_info est un dict vide en cas d'erreur
+        logger.error(f"Raw metadata content: {raw_metadata_content}")
+        dial_info = {} # Ensure dial_info is dict on error
 
-    # Déterminer le numéro de téléphone final (Métadonnées > Variable d'env PHONE_NUMBER)
+    # Determine final phone number (Metadata > PHONE_NUMBER env var)
     if not phone_number:
         phone_number_env = os.getenv("PHONE_NUMBER")
         if phone_number_env:
-            logger.info(f"Numéro de téléphone récupéré depuis la variable d'env PHONE_NUMBER: {phone_number_env}")
+            logger.info(f"Phone number retrieved from PHONE_NUMBER env var: {phone_number_env}")
             phone_number = phone_number_env
         else:
-            logger.critical("Numéro de téléphone manquant dans les métadonnées ET dans la variable d'env PHONE_NUMBER. Impossible d'appeler.")
-            ctx.shutdown() # Utiliser shutdown pour signaler l'erreur au worker
-            return # Arrêter l'exécution
+            logger.critical("Phone number missing in metadata AND PHONE_NUMBER env var. Cannot dial.")
+            ctx.shutdown() # Use shutdown to signal error to worker
+            return # Stop execution
 
-    # Mettre à jour dial_info avec les informations finales (sera passé à l'agent)
+    # Update dial_info with final information (will be passed to agent)
     dial_info["phone_number"] = phone_number
     dial_info["firstName"] = first_name
     dial_info["lastName"] = last_name
-    # dial_info peut aussi contenir 'transfer_to' s'il était dans les métadonnées
+    # dial_info might also contain 'transfer_to' if it was in metadata
 
-    logger.info(f"Infos finales pour l'appel : Nom={first_name}, Tel={phone_number}, Autres Infos={dial_info}")
+    logger.info(f"Final call info: Name={first_name}, Tel={phone_number}, Other Info={dial_info}")
 
-    # --- Configuration de l'Agent et de la Session ---
+    # --- Agent and Session Setup ---
     agent = OutboundCaller(
         name=first_name,
         dial_info=dial_info,
     )
 
-    logger.info("Configuration de la session AgentSession avec les plugins...")
+    logger.info("Configuring AgentSession with plugins...")
     try:
+        # Initialize AgentSession only with plugins
         session = AgentSession(
-            agent=agent, # Passer l'instance de l'agent
-            room=ctx.room, # Passer la room connectée
+            # agent=agent, # Removed from here
+            # room=ctx.room, # Removed from here
             vad=silero.VAD.load(),
             stt=deepgram.STT(language="fr", model="nova-2"),
             tts=cartesia.TTS(
-                model="sonic-2", # Utiliser le modèle Cartesia qui fonctionne
-                voice="65b25c5d-ff07-4687-a04c-da2f43ef6fa9" # ID de voix Cartesia
+                model="sonic-2", # Use working Cartesia model
+                voice="65b25c5d-ff07-4687-a04c-da2f43ef6fa9" # Cartesia voice ID
             ),
             llm=openai.LLM(model="gpt-4o-mini"),
         )
     except Exception as e:
-        logger.critical(f"Erreur critique lors de l'initialisation des plugins ou AgentSession: {e}")
+        logger.critical(f"Critical error initializing plugins or AgentSession: {e}")
         ctx.shutdown()
         return
 
-    # Démarrer la session agent en arrière-plan pour gérer l'interaction
-    logger.info("Démarrage de la session agent en arrière-plan...")
-    session_task = asyncio.create_task(session.start()) # start() gère maintenant l'agent et la room
+    # Start the agent session in the background to handle interaction
+    logger.info("Starting agent session in background...")
+    # Pass 'agent' and 'room' to session.start()
+    session_task = asyncio.create_task(
+        session.start(
+            agent=agent,
+            room=ctx.room
+            # room_input_options=RoomInputOptions(), # Optional
+        )
+    )
 
-    # --- Démarrage de l'Appel Sortant SIP ---
+    # --- Start Outbound SIP Call ---
     outbound_trunk_id = os.getenv("SIP_OUTBOUND_TRUNK_ID")
-    sip_from_number = os.getenv("SIP_FROM_NUMBER", "") # Numéro présenté (optionnel, dépend du trunk)
+    sip_from_number = os.getenv("SIP_FROM_NUMBER", "") # Presented number (optional, depends on trunk)
 
-    logger.info(f"Tentative d'appel SIP vers {phone_number} via trunk {outbound_trunk_id}")
+    logger.info(f"Attempting SIP call to {phone_number} via trunk {outbound_trunk_id}")
 
     if not outbound_trunk_id:
-        logger.critical("Variable d'environnement SIP_OUTBOUND_TRUNK_ID non définie.")
-        session_task.cancel() # Annuler la session avant de quitter
+        logger.critical("Environment variable SIP_OUTBOUND_TRUNK_ID not set.")
+        session_task.cancel() # Cancel session before exiting
         ctx.shutdown()
         return
 
     try:
-        logger.info(f"Exécution de create_sip_participant pour {phone_number}")
+        logger.info(f"Executing create_sip_participant for {phone_number}")
         await ctx.api.sip.create_sip_participant(
             api.CreateSIPParticipantRequest(
                 room_name=ctx.room.name,
                 sip_trunk_id=outbound_trunk_id,
                 sip_call_to=phone_number,
-                participant_identity="phone_user", # Identité pour le participant appelé
+                participant_identity="phone_user", # Identity for the called participant
                 wait_until_answered=True,
-                # Les paramètres sip_from et caller_id ne sont pas supportés par toutes les versions/configs
-                # S'assurer que le trunk est configuré pour utiliser le bon numéro sortant
+                # sip_from and caller_id parameters are not supported by all versions/configs
+                # Ensure trunk is configured for correct outbound number
             )
         )
-        logger.info(f"Appel SIP répondu pour {phone_number}. Attente de la connexion du participant 'phone_user'.")
+        logger.info(f"SIP call answered for {phone_number}. Waiting for participant 'phone_user' to connect.")
 
-        # Attendre que le participant rejoigne la room (sans timeout explicite si non supporté)
+        # Wait for the participant to join the room (no explicit timeout if not supported)
         participant = await ctx.wait_for_participant(identity="phone_user")
-        logger.info(f"Participant 'phone_user' ({participant.sid}) connecté à la room {ctx.room.name}.")
-        agent.set_participant(participant) # Informer l'agent du participant
+        logger.info(f"Participant 'phone_user' ({participant.sid}) connected to room {ctx.room.name}.")
+        agent.set_participant(participant) # Inform agent about the participant
 
     except api.TwirpError as e:
-        logger.error(f"Erreur Twirp lors de l'appel SIP: {e.code} {e.message}, SIP Status: {e.metadata.get('sip_status_code')} {e.metadata.get('sip_status')}")
+        logger.error(f"Twirp error during SIP call: {e.code} {e.message}, SIP Status: {e.metadata.get('sip_status_code')} {e.metadata.get('sip_status')}")
         session_task.cancel()
         ctx.shutdown()
-    except asyncio.TimeoutError: # Peut arriver si wait_for_participant avait un timeout caché
-         logger.error("Timeout lors de l'attente du participant 'phone_user'.")
+    except asyncio.TimeoutError: # Can happen if wait_for_participant had a hidden timeout
+         logger.error("Timeout waiting for participant 'phone_user'.")
          session_task.cancel()
          ctx.shutdown()
     except Exception as e:
-        logger.error(f"Erreur inattendue lors de l'appel SIP ou attente participant: {str(e)}")
+        logger.error(f"Unexpected error during SIP call or participant wait: {str(e)}")
         import traceback
         logger.error(traceback.format_exc())
         session_task.cancel()
         ctx.shutdown()
-        return # Sortir en cas d'erreur critique
+        return # Exit on critical error
 
-    # --- L'Agent Gère l'Appel ---
-    logger.info("Appel SIP connecté et participant joint. La session agent est active.")
+    # --- Agent Handles the Call ---
+    logger.info("SIP call connected and participant joined. Agent session is active.")
 
-    # Le point d'entrée peut se terminer ici. La session_task et le worker LiveKit
-    # maintiendront la connexion et géreront la fin de l'appel via l'agent.
-    # L'appel à ctx.run() n'est pas nécessaire/standard ici.
+    # Entrypoint can end here. The session_task and LiveKit worker
+    # will maintain the connection and handle call termination via the agent.
+    # ctx.run() is not needed/standard here.
 
-# --- Bloc Principal d'Exécution ---
+# --- Main Execution Block ---
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO) # Config logging de base pour le worker
+    # Basic logging config for the worker process already done above
+    # logging.basicConfig(level=logging.INFO)
 
-    logger.info("Configuration et démarrage du worker LiveKit Agent (outbound-caller)...")
+    logger.info("Configuring and starting LiveKit Agent worker (outbound-caller)...")
 
-    # Définir les options du worker, en pointant vers la fonction entrypoint
+    # Define worker options, pointing to the entrypoint function
     worker_options = WorkerOptions(
         entrypoint_fnc=entrypoint,
-        agent_name="outbound-caller", # Nom utilisé pour dispatcher les jobs
+        agent_name="outbound-caller", # Name used for dispatching jobs
     )
 
-    # Utiliser le lanceur standard de LiveKit pour les agents
+    # Use the standard LiveKit agent runner
     try:
-        cli.run_app(worker_options) # Gère la connexion à LiveKit et la boucle de jobs
+        cli.run_app(worker_options) # Handles connection to LiveKit and job loop
     except Exception as e:
-        logger.critical(f"Échec critique lors du lancement du worker agent: {str(e)}")
+        logger.critical(f"Critical failure running agent worker: {str(e)}")
         import traceback
         logger.critical(traceback.format_exc())
-        sys.exit(1) # Sortir avec un code d'erreur 
+        sys.exit(1) # Exit with error code
