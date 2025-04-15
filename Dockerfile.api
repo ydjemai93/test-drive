@@ -6,20 +6,37 @@ FROM python:3.11-slim
 # Définir le répertoire de travail
 WORKDIR /app
 
-# Installer les dépendances système nécessaires (curl, tar sont généralement inclus dans slim, mais on s'assure)
+# Installer les dépendances système nécessaires (curl, tar sont généralement inclus, wget non)
 # et nettoyer ensuite pour garder l'image petite
 RUN apt-get update && apt-get install -y curl --no-install-recommends && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# --- Installation du CLI LiveKit ---
+# --- Installation du CLI LiveKit (Méthode Robuste) ---
 # Définir la version du CLI à installer (Vérifiez la dernière sur GitHub Releases!)
-ARG LK_CLI_VERSION=v1.5.5
+ARG LK_CLI_VERSION=v1.5.5 # <-- METTEZ A JOUR AVEC LA DERNIERE VERSION STABLE!
 
-# Télécharger la version spécifique du CLI lk dans un fichier temporaire
-RUN curl -sfL -o /tmp/livekit-cli.tar.gz https://github.com/livekit/livekit-cli/releases/download/${LK_CLI_VERSION}/livekit-cli_linux_amd64.tar.gz
+# Essayer de télécharger avec curl (plus verbeux)
+RUN echo "Attempting download with curl (version ${LK_CLI_VERSION})..." && \
+    curl -fL -o /tmp/livekit-cli.tar.gz https://github.com/livekit/livekit-cli/releases/download/${LK_CLI_VERSION}/livekit-cli_linux_amd64.tar.gz || \
+    ( \
+      echo "curl failed with exit code $?, attempting download with wget..." && \
+      apt-get update && apt-get install -y wget --no-install-recommends && \
+      wget -O /tmp/livekit-cli.tar.gz https://github.com/livekit/livekit-cli/releases/download/${LK_CLI_VERSION}/livekit-cli_linux_amd64.tar.gz && \
+      echo "wget download attempt finished." && \
+      # Nettoyage de wget après usage
+      apt-get purge -y --auto-remove wget && rm -rf /var/lib/apt/lists/* \
+    )
+
+# Vérifier si le fichier a été téléchargé avant d'extraire
+RUN if [ ! -f /tmp/livekit-cli.tar.gz ]; then echo "ERROR: livekit-cli.tar.gz not found after download attempts!"; exit 1; fi
 
 # Extraire l'archive téléchargée vers /usr/local/bin (qui est généralement dans le PATH) et nettoyer
-RUN tar xzf /tmp/livekit-cli.tar.gz -C /usr/local/bin && rm /tmp/livekit-cli.tar.gz
+RUN echo "Extracting livekit-cli.tar.gz..." && \
+    tar xzf /tmp/livekit-cli.tar.gz -C /usr/local/bin && \
+    rm /tmp/livekit-cli.tar.gz && \
+    echo "Extraction complete. Verifying lk installation..." && \
+    # Vérifier que lk est bien exécutable
+    lk --version || (echo "ERROR: lk command failed after extraction!"; exit 1)
 # --- Fin Installation CLI ---
 
 # Copier le fichier de dépendances de l'API
@@ -32,10 +49,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY api/ ./api/
 
 # Exposer le port que Uvicorn utilisera (la plateforme le mappera)
-# Ce port est défini par la variable d'environnement PORT injectée par Render/Railway
 EXPOSE 8000
 
 # Commande par défaut pour lancer l'image (sera remplacée par la commande de démarrage de Render/Railway)
-# Exemple: ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
-# Mais la commande de démarrage de la plateforme utilisera $PORT
 CMD ["echo", "Utilisez la commande de démarrage de la plateforme (ex: Render/Railway)"]
