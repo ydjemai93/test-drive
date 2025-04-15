@@ -9,7 +9,7 @@ import locale
 from typing import Any
 
 # Forcer l\'encodage UTF-8 pour Windows (si nécessaire, mais peut être omis sur les systèmes Linux/macOS)
-if sys.platform == \'win32\':
+if sys.platform == 'win32':
     try:
         locale.setlocale(locale.LC_ALL, \'fr_FR.UTF-8\')
     except locale.Error:
