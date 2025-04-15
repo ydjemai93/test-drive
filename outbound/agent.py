@@ -72,6 +72,7 @@ class OutboundCaller(Agent):
                 "l'optimisation des opérations dans un centre d'appels, et l'assistance aux équipes commerciales et de recouvrement. "
                 "Vous pouvez traiter les demandes clients, répondre aux questions fréquentes, effectuer des actions administratives "
                 "simples, et aider à la résolution de problèmes.\\n\\n"
+                "Le nom de l'interlocuteur est {name}.\\n\\n"
                 "Pendant la conversation, soyez concis et naturel dans vos réponses, évitez les phrases trop longues ou complexes. "
                 "Adaptez votre ton pour être professionnel et sympathique. Pour présenter vos fonctionnalités, utilisez des phrases "
                 "simples sans puces ni formatage spécial. Ne jamais utiliser de symboles tels que les astérisques, tirets, dièses.\\n\\n"
