@@ -1,0 +1,25 @@
+    {
+      "$schema": "https://railway.app/railway.schema.json",
+      "services": [
+        {
+          "name": "test-drive",  
+          "build": {
+            "builder": "DOCKERFILE",        
+            "dockerfilePath": "./Dockerfile.api"
+          },
+          "deploy": {
+            "startCommand": "uvicorn api.main:app --host 0.0.0.0 --port $PORT"
+          }
+        },
+        {
+          "name": "keen-friendship", 
+          "build": {
+            "builder": "DOCKERFILE",        
+            "dockerfilePath": "./Dockerfile.agent"
+          },
+          "deploy": {
+            "startCommand": "python Cartesia/Demo/outbound/agent.py" # Assurez-vous que ce chemin est correct depuis la racine
+          }
+        }
+      ]
+    }
