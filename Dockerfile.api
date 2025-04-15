@@ -6,37 +6,17 @@ FROM python:3.11-slim
 # Définir le répertoire de travail
 WORKDIR /app
 
-# Installer les dépendances système nécessaires (curl, tar sont généralement inclus, wget non)
+# Installer les dépendances système nécessaires (curl est requis par le script d'install)
 # et nettoyer ensuite pour garder l'image petite
 RUN apt-get update && apt-get install -y curl --no-install-recommends && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# --- Installation du CLI LiveKit (Méthode Robuste) ---
-# Définir la version du CLI à installer (Vérifiez la dernière sur GitHub Releases!)
-ARG LK_CLI_VERSION=v1.5.5 # <-- METTEZ A JOUR AVEC LA DERNIERE VERSION STABLE!
-
-# Essayer de télécharger avec curl (plus verbeux)
-RUN echo "Attempting download with curl (version ${LK_CLI_VERSION})..." && \
-    curl -fL -o /tmp/livekit-cli.tar.gz https://github.com/livekit/livekit-cli/releases/download/${LK_CLI_VERSION}/livekit-cli_linux_amd64.tar.gz || \
-    ( \
-      echo "curl failed with exit code $?, attempting download with wget..." && \
-      apt-get update && apt-get install -y wget --no-install-recommends && \
-      wget -O /tmp/livekit-cli.tar.gz https://github.com/livekit/livekit-cli/releases/download/${LK_CLI_VERSION}/livekit-cli_linux_amd64.tar.gz && \
-      echo "wget download attempt finished." && \
-      # Nettoyage de wget après usage
-      apt-get purge -y --auto-remove wget && rm -rf /var/lib/apt/lists/* \
-    )
-
-# Vérifier si le fichier a été téléchargé avant d'extraire
-RUN if [ ! -f /tmp/livekit-cli.tar.gz ]; then echo "ERROR: livekit-cli.tar.gz not found after download attempts!"; exit 1; fi
-
-# Extraire l'archive téléchargée vers /usr/local/bin (qui est généralement dans le PATH) et nettoyer
-RUN echo "Extracting livekit-cli.tar.gz..." && \
-    tar xzf /tmp/livekit-cli.tar.gz -C /usr/local/bin && \
-    rm /tmp/livekit-cli.tar.gz && \
-    echo "Extraction complete. Verifying lk installation..." && \
-    # Vérifier que lk est bien exécutable
-    lk --version || (echo "ERROR: lk command failed after extraction!"; exit 1)
+# --- Installation du CLI LiveKit (Méthode Officielle Recommandée) ---
+RUN echo "Installing LiveKit CLI using the official script..." && \
+    curl -sSL https://get.livekit.io/cli | bash && \
+    echo "Verifying lk installation..." && \
+    # Vérifier que lk est bien exécutable et dans le PATH
+    lk --version || (echo "ERROR: lk command failed after installation script!"; exit 1)
 # --- Fin Installation CLI ---
 
 # Copier le fichier de dépendances de l'API
