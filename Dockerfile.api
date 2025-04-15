@@ -8,8 +8,11 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y curl --no-install-recommends && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Télécharger, rendre exécutable et installer le CLI lk (adapter si architecture différente d'amd64)
-RUN curl -sfL https://github.com/livekit/livekit-cli/releases/latest/download/livekit-cli_linux_amd64.tar.gz | tar xz -C /usr/local/bin
+# Télécharger le CLI lk dans un fichier temporaire
+RUN curl -sfL -o /tmp/livekit-cli.tar.gz https://github.com/livekit/livekit-cli/releases/latest/download/livekit-cli_linux_amd64.tar.gz
+
+# Extraire l'archive téléchargée vers /usr/local/bin et nettoyer
+RUN tar xzf /tmp/livekit-cli.tar.gz -C /usr/local/bin && rm /tmp/livekit-cli.tar.gz
 
 # Copier le fichier de dépendances de l'API (maintenant à la racine/api)
 COPY api/requirements.txt ./
