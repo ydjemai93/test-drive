@@ -21,7 +21,7 @@ services:
     # S'exécute dans le WORKDIR défini dans Dockerfile.agent (/app/outbound)
     startCommand: python agent.py
     envVars:
-      - fromGroup: pam-demo-shared-env # Nom de votre groupe d'environnement partagé
+      - fromGroup: env-demo # Nom de votre groupe d'environnement partagé
 
 # Optionnel: Définir le groupe d'environnement ici si vous ne l'avez pas fait dans l'UI
 # envVarGroups:
