@@ -1,31 +1,41 @@
+# Fichier: Dockerfile.api
+
 # Utiliser une image Python officielle
 FROM python:3.11-slim
 
 # Définir le répertoire de travail
 WORKDIR /app
 
-# Installer curl (nécessaire pour télécharger lk) et nettoyer
+# Installer les dépendances système nécessaires (curl, tar sont généralement inclus dans slim, mais on s'assure)
+# et nettoyer ensuite pour garder l'image petite
 RUN apt-get update && apt-get install -y curl --no-install-recommends && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Télécharger le CLI lk dans un fichier temporaire
-RUN curl -sfL -o /tmp/livekit-cli.tar.gz https://github.com/livekit/livekit-cli/releases/latest/download/livekit-cli_linux_amd64.tar.gz
+# --- Installation du CLI LiveKit ---
+# Définir la version du CLI à installer (Vérifiez la dernière sur GitHub Releases!)
+ARG LK_CLI_VERSION=v1.5.5
 
-# Extraire l'archive téléchargée vers /usr/local/bin et nettoyer
+# Télécharger la version spécifique du CLI lk dans un fichier temporaire
+RUN curl -sfL -o /tmp/livekit-cli.tar.gz https://github.com/livekit/livekit-cli/releases/download/${LK_CLI_VERSION}/livekit-cli_linux_amd64.tar.gz
+
+# Extraire l'archive téléchargée vers /usr/local/bin (qui est généralement dans le PATH) et nettoyer
 RUN tar xzf /tmp/livekit-cli.tar.gz -C /usr/local/bin && rm /tmp/livekit-cli.tar.gz
+# --- Fin Installation CLI ---
 
-# Copier le fichier de dépendances de l'API (maintenant à la racine/api)
+# Copier le fichier de dépendances de l'API
 COPY api/requirements.txt ./
 
 # Installer les dépendances Python
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copier le code de l'API (maintenant à la racine/api)
+# Copier le code de l'application API
 COPY api/ ./api/
 
 # Exposer le port que Uvicorn utilisera (la plateforme le mappera)
+# Ce port est défini par la variable d'environnement PORT injectée par Render/Railway
 EXPOSE 8000
 
-# Commande pour lancer l'API
-# Le chemin vers main:app est relatif au WORKDIR
-CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Commande par défaut pour lancer l'image (sera remplacée par la commande de démarrage de Render/Railway)
+# Exemple: ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Mais la commande de démarrage de la plateforme utilisera $PORT
+CMD ["echo", "Utilisez la commande de démarrage de la plateforme (ex: Render/Railway)"]
